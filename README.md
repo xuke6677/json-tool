@@ -19,22 +19,24 @@
 - Python 3.8+
 - 无需额外依赖（使用内置库）
 
-## 安装与运行
+## 快速开始
 
-### 方式一：直接运行源码
+### 方式一：直接运行 EXE（推荐）
+直接下载 `JSONTool.exe` 双击运行，无需安装 Python！
+
+### 方式二：运行源码
 
 ```bash
 python json_tool.py
 ```
 
-### 方式二：打包为 EXE（可选）
+### 方式三：打包 EXE
 
+如需重新打包：
 ```bash
-pip install pyinstaller
-pyinstaller --onefile --windowed json_tool.py
+pip install pyinstaller xmltodict pyyaml
+pyinstaller --onefile --windowed --name=JSONTool json_tool.py
 ```
-
-打包后的 EXE 在 `dist` 目录中。
 
 ## 使用说明
 

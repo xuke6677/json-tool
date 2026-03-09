@@ -71,6 +71,8 @@ class JSONToolApp:
             ("验证", self.validate_json),
             ("美化", self.beautify_json),
             ("排序", self.sort_json),
+            ("折叠", self.fold_json),
+            ("展开", self.unfold_json),
         ]
         
         for text, cmd in buttons:
@@ -79,6 +81,10 @@ class JSONToolApp:
         
         # 分隔符
         ttk.Separator(btn_frame, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=5)
+        
+        # 复制按钮组
+        copy_frame = ttk.LabelFrame(toolbar, text="复制", padding=5)
+        copy_frame.pack(side=tk.LEFT, fill=tk.Y)
         
         # 转换按钮组
         convert_frame = ttk.LabelFrame(toolbar, text="转换", padding=5)
@@ -92,6 +98,22 @@ class JSONToolApp:
         
         for text, cmd in convert_buttons:
             btn = ttk.Button(convert_frame, text=text, command=cmd, style='Tool.TButton', width=8)
+            btn.pack(side=tk.LEFT, padx=2)
+        
+        # 分隔符
+        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=5)
+        
+        # 复制按钮组
+        copy_frame = ttk.LabelFrame(toolbar, text="复制", padding=5)
+        copy_frame.pack(side=tk.LEFT, fill=tk.Y)
+        
+        copy_buttons = [
+            ("复制输入", self.copy_input),
+            ("复制输出", self.copy_output),
+        ]
+        
+        for text, cmd in copy_buttons:
+            btn = ttk.Button(copy_frame, text=text, command=cmd, style='Tool.TButton', width=8)
             btn.pack(side=tk.LEFT, padx=2)
         
         # 提示信息
@@ -299,6 +321,27 @@ class JSONToolApp:
             return [self._sort_object(item) for item in obj]
         else:
             return obj
+    
+    def fold_json(self):
+        """折叠 JSON（压缩成一行）"""
+        text = self.get_input()
+        if not text:
+            self.show_error("错误", "请输入 JSON 内容")
+            return
+        
+        obj, error = self.parse_json(text)
+        if error:
+            self.show_error("JSON 格式错误", error)
+            return
+        
+        # 折叠：去掉所有空白字符
+        folded = json.dumps(obj, ensure_ascii=False, separators=(',', ':'))
+        self.set_output(folded)
+        self.status_label.config(text="折叠成功 ✓")
+    
+    def unfold_json(self):
+        """展开 JSON（格式化）"""
+        self.format_json()
     
     def json_to_xml(self):
         """JSON 转 XML"""
