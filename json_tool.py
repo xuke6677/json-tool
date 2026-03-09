@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 JSON 工具箱 - Windows 本地版
-一个轻量级的本地 JSON 处理工具
+支持树形视图、折叠展开、格式化等功能
 """
 
 import json
@@ -30,7 +30,12 @@ class JSONToolApp:
     def __init__(self, root):
         self.root = root
         self.root.title("JSON 工具箱 v1.0")
-        self.root.geometry("1200x700")
+        
+        # 获取屏幕尺寸并设置全屏
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        self.root.geometry(f"{screen_width}x{screen_height}")
+        self.root.state('zoomed')  # 最大化窗口
         self.root.minsize(800, 500)
         
         # 设置样式
@@ -45,7 +50,7 @@ class JSONToolApp:
         # 状态变量
         self.current_file = None
         self.is_modified = False
-    
+        
     def setup_styles(self):
         """设置样式"""
         style = ttk.Style()
@@ -54,6 +59,10 @@ class JSONToolApp:
         # 配置按钮样式
         style.configure('Primary.TButton', font=('微软雅黑', 10))
         style.configure('Tool.TButton', font=('微软雅黑', 9))
+        
+        # Treeview 样式
+        style.configure("Treeview", font=('Consolas', 10))
+        style.configure("Treeview.Item", font=('Consolas', 10))
         
     def create_widgets(self):
         """创建界面组件"""
@@ -69,10 +78,7 @@ class JSONToolApp:
             ("格式化", self.format_json),
             ("压缩", self.compress_json),
             ("验证", self.validate_json),
-            ("美化", self.beautify_json),
             ("排序", self.sort_json),
-            ("折叠", self.fold_json),
-            ("展开", self.unfold_json),
         ]
         
         for text, cmd in buttons:
@@ -82,9 +88,22 @@ class JSONToolApp:
         # 分隔符
         ttk.Separator(btn_frame, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=5)
         
-        # 复制按钮组
-        copy_frame = ttk.LabelFrame(toolbar, text="复制", padding=5)
-        copy_frame.pack(side=tk.LEFT, fill=tk.Y)
+        # 树形视图按钮
+        tree_frame = ttk.LabelFrame(toolbar, text="树形视图", padding=5)
+        tree_frame.pack(side=tk.LEFT, fill=tk.Y)
+        
+        tree_buttons = [
+            ("生成树", self.build_tree),
+            ("展开全部", self.tree_expand_all),
+            ("折叠全部", self.tree_collapse_all),
+        ]
+        
+        for text, cmd in tree_buttons:
+            btn = ttk.Button(tree_frame, text=text, command=cmd, style='Tool.TButton', width=10)
+            btn.pack(side=tk.LEFT, padx=2)
+        
+        # 分隔符
+        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=5)
         
         # 转换按钮组
         convert_frame = ttk.LabelFrame(toolbar, text="转换", padding=5)
@@ -116,11 +135,6 @@ class JSONToolApp:
             btn = ttk.Button(copy_frame, text=text, command=cmd, style='Tool.TButton', width=8)
             btn.pack(side=tk.LEFT, padx=2)
         
-        # 提示信息
-        if not HAS_XMLTODICT:
-            tip = ttk.Label(toolbar, text="安装 xmltodict: pip install xmltodict", foreground='gray')
-            tip.pack(side=tk.LEFT, padx=10)
-        
         # 文件操作按钮
         file_frame = ttk.Frame(toolbar)
         file_frame.pack(side=tk.RIGHT)
@@ -128,9 +142,16 @@ class JSONToolApp:
         ttk.Button(file_frame, text="Open", command=self.open_file, width=8).pack(side=tk.RIGHT, padx=2)
         ttk.Button(file_frame, text="Save", command=self.save_file, width=8).pack(side=tk.RIGHT, padx=2)
         
-        # 主内容区
-        content = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
-        content.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # 主内容区 - 使用 Notebook 实现多标签
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # ===== 标签1: 格式化编辑 =====
+        edit_frame = ttk.Frame(self.notebook)
+        self.notebook.add(edit_frame, text="格式化编辑")
+        
+        content = ttk.PanedWindow(edit_frame, orient=tk.HORIZONTAL)
+        content.pack(fill=tk.BOTH, expand=True)
         
         # 左侧输入区
         left_frame = ttk.LabelFrame(content, text="输入 JSON", padding=5)
@@ -144,7 +165,6 @@ class JSONToolApp:
         )
         self.input_text.pack(fill=tk.BOTH, expand=True)
         
-        # 添加行号显示（右侧显示）
         self.input_text.bind('<<Modified>>', self.on_text_change)
         
         # 中间操作区
@@ -170,6 +190,50 @@ class JSONToolApp:
         )
         self.output_text.pack(fill=tk.BOTH, expand=True)
         
+        # ===== 标签2: 树形视图 =====
+        tree_view_frame = ttk.Frame(self.notebook)
+        self.notebook.add(tree_view_frame, text="树形视图")
+        
+        # 树形控件
+        tree_container = ttk.Frame(tree_view_frame, padding=5)
+        tree_container.pack(fill=tk.BOTH, expand=True)
+        
+        # 树形视图 + 滚动条
+        tree_scroll_y = ttk.Scrollbar(tree_container, orient=tk.VERTICAL)
+        tree_scroll_x = ttk.Scrollbar(tree_container, orient=tk.HORIZONTAL)
+        
+        self.tree = ttk.Treeview(
+            tree_container, 
+            yscrollcommand=tree_scroll_y.set,
+            xscrollcommand=tree_scroll_x.set,
+            style="Treeview"
+        )
+        
+        tree_scroll_y.config(command=self.tree.yview)
+        tree_scroll_x.config(command=self.tree.xview)
+        
+        tree_scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
+        tree_scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
+        self.tree.pack(fill=tk.BOTH, expand=True)
+        
+        # 配置列
+        self.tree.column('#0', width=500, minwidth=300)
+        self.tree.heading('#0', text='JSON 结构')
+        
+        # 绑定双击展开/折叠
+        self.tree.bind('<Double-1>', self.tree_toggle)
+        
+        # ===== 标签3: 转换结果 =====
+        convert_frame = ttk.Frame(self.notebook)
+        self.notebook.add(convert_frame, text="转换结果")
+        
+        self.convert_text = scrolledtext.ScrolledText(
+            convert_frame,
+            font=('Consolas', 11),
+            wrap=tk.NONE
+        )
+        self.convert_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
         # 底部状态栏
         self.status_label = ttk.Label(
             self.root, 
@@ -186,7 +250,6 @@ class JSONToolApp:
         """绑定快捷键"""
         self.root.bind('<Control-o>', lambda e: self.open_file())
         self.root.bind('<Control-s>', lambda e: self.save_file())
-        self.root.bind('<Control-v>', lambda e: self.paste_and_format())
         self.root.bind('<Control-Return>', lambda e: self.format_json())
         self.root.bind('<Control-a>', lambda e: self.select_all())
         
@@ -212,6 +275,12 @@ class JSONToolApp:
         self.output_text.delete('1.0', tk.END)
         self.output_text.insert('1.0', text)
         self.output_text.config(state=tk.DISABLED)
+    
+    def set_convert_output(self, text):
+        """设置转换输出"""
+        self.convert_text.delete('1.0', tk.END)
+        self.convert_text.insert('1.0', text)
+        self.notebook.select(2)  # 切换到转换结果标签
     
     def show_error(self, title, message):
         """显示错误信息"""
@@ -242,14 +311,9 @@ class JSONToolApp:
             self.show_error("JSON 格式错误", error)
             return
         
-        # 格式化输出
         formatted = json.dumps(obj, ensure_ascii=False, indent=2)
         self.set_output(formatted)
         self.status_label.config(text="格式化成功 ✓")
-    
-    def beautify_json(self):
-        """美化 JSON（带颜色高亮效果，使用简单格式化）"""
-        self.format_json()
     
     def compress_json(self):
         """压缩 JSON"""
@@ -279,7 +343,6 @@ class JSONToolApp:
             self.show_error("JSON 验证失败", error)
             return
         
-        # 验证成功，显示统计信息
         info = f"✓ JSON 格式正确！\n\n"
         info += f"数据类型: {type(obj).__name__}\n"
         
@@ -288,7 +351,6 @@ class JSONToolApp:
         elif isinstance(obj, list):
             info += f"数组长度: {len(obj)} 个元素\n"
         
-        # 估算大小
         size_bytes = len(text.encode('utf-8'))
         info += f"原始大小: {size_bytes} 字节\n"
         
@@ -296,7 +358,7 @@ class JSONToolApp:
         self.status_label.config(text="验证成功 ✓")
     
     def sort_json(self):
-        """排序 JSON（按键名）"""
+        """排序 JSON"""
         text = self.get_input()
         if not text:
             self.show_error("错误", "请输入 JSON 内容")
@@ -307,7 +369,6 @@ class JSONToolApp:
             self.show_error("JSON 格式错误", error)
             return
         
-        # 递归排序
         sorted_obj = self._sort_object(obj)
         sorted_str = json.dumps(sorted_obj, ensure_ascii=False, indent=2)
         self.set_output(sorted_str)
@@ -322,8 +383,10 @@ class JSONToolApp:
         else:
             return obj
     
-    def fold_json(self):
-        """折叠 JSON（压缩成一行）"""
+    # ===== 树形视图方法 =====
+    
+    def build_tree(self):
+        """构建树形视图"""
         text = self.get_input()
         if not text:
             self.show_error("错误", "请输入 JSON 内容")
@@ -334,14 +397,93 @@ class JSONToolApp:
             self.show_error("JSON 格式错误", error)
             return
         
-        # 折叠：去掉所有空白字符
-        folded = json.dumps(obj, ensure_ascii=False, separators=(',', ':'))
-        self.set_output(folded)
-        self.status_label.config(text="折叠成功 ✓")
+        # 清空现有树
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
+        # 构建树
+        self._add_tree_item("", obj, 0)
+        
+        # 切换到树形视图标签
+        self.notebook.select(1)
+        self.status_label.config(text="树形视图构建成功 ✓")
     
-    def unfold_json(self):
-        """展开 JSON（格式化）"""
-        self.format_json()
+    def _add_tree_item(self, parent, obj, depth=0):
+        """递归添加树节点"""
+        indent = "  " * depth
+        
+        if isinstance(obj, dict):
+            if depth == 0:
+                # 根对象
+                item_id = self.tree.insert(parent, 'end', text=f"{{ ... }}", open=True)
+            else:
+                item_id = self.tree.insert(parent, 'end', text=f"{{ {len(obj)} 个键 }}", open=True)
+            
+            for key, value in obj.items():
+                self._add_tree_item(item_id, {key: value}, depth + 1)
+                
+        elif isinstance(obj, list):
+            if depth == 0:
+                item_id = self.tree.insert(parent, 'end', text=f"[ {len(obj)} 个元素 ]", open=True)
+            else:
+                item_id = self.tree.insert(parent, 'end', text=f"[ {len(obj)} 个元素 ]", open=True)
+            
+            for i, item in enumerate(obj):
+                self._add_tree_item(item_id, {f"[{i}]": item}, depth + 1)
+                
+        else:
+            # 叶子节点
+            display_value = self._format_value(obj)
+            self.tree.insert(parent, 'end', text=f"{indent}{display_value}")
+    
+    def _format_value(self, value):
+        """格式化值显示"""
+        if isinstance(value, str):
+            if len(value) > 50:
+                return f'"{value[:50]}..."'
+            return f'"{value}"'
+        elif isinstance(value, bool):
+            return str(value).lower()
+        elif value is None:
+            return "null"
+        else:
+            return str(value)
+    
+    def tree_toggle(self, event):
+        """双击展开/折叠节点"""
+        # 获取点击位置
+        region = self.tree.identify_region(event.x, event.y)
+        if region == "tree":
+            item_id = self.tree.identify_row(event.y)
+            if item_id:
+                if self.tree.item(item_id, 'open'):
+                    self.tree.item(item_id, open=False)
+                else:
+                    self.tree.item(item_id, open=True)
+    
+    def tree_expand_all(self):
+        """展开全部"""
+        for item in self.tree.get_children():
+            self._expand_recursive(item)
+    
+    def _expand_recursive(self, item):
+        """递归展开"""
+        self.tree.item(item, open=True)
+        for child in self.tree.get_children(item):
+            self._expand_recursive(child)
+    
+    def tree_collapse_all(self):
+        """折叠全部"""
+        for item in self.tree.get_children():
+            self._collapse_recursive(item)
+    
+    def _collapse_recursive(self, item):
+        """递归折叠"""
+        self.tree.item(item, open=False)
+        for child in self.tree.get_children(item):
+            self._collapse_recursive(child)
+    
+    # ===== 转换方法 =====
     
     def json_to_xml(self):
         """JSON 转 XML"""
@@ -362,7 +504,7 @@ class JSONToolApp:
         try:
             xml_dict = {'root': obj}
             xml_str = xmltodict.unparse(xml_dict, pretty=True, encoding='utf-8')
-            self.set_output(xml_str)
+            self.set_convert_output(xml_str)
             self.status_label.config(text="转换为 XML 成功 ✓")
         except Exception as e:
             self.show_error("转换错误", str(e))
@@ -385,7 +527,7 @@ class JSONToolApp:
         
         try:
             yaml_str = yaml.dump(obj, allow_unicode=True, default_flow_style=False)
-            self.set_output(yaml_str)
+            self.set_convert_output(yaml_str)
             self.status_label.config(text="转换为 YAML 成功 ✓")
         except Exception as e:
             self.show_error("转换错误", str(e))
@@ -402,16 +544,14 @@ class JSONToolApp:
             self.show_error("JSON 格式错误", error)
             return
         
-        # 只处理数组形式
         if not isinstance(obj, list):
             self.show_error("错误", "JSON 必须是数组格式才能转换为 CSV")
             return
         
         if not obj:
-            self.set_output("数组为空")
+            self.set_convert_output("数组为空")
             return
         
-        # 获取所有键
         all_keys = set()
         for item in obj:
             if isinstance(item, dict):
@@ -421,7 +561,6 @@ class JSONToolApp:
             self.show_error("错误", "数组元素必须是对象才能转换为 CSV")
             return
         
-        # 生成 CSV
         import csv
         import io
         
@@ -433,7 +572,7 @@ class JSONToolApp:
             if isinstance(item, dict):
                 writer.writerow(item)
         
-        self.set_output(output.getvalue())
+        self.set_convert_output(output.getvalue())
         self.status_label.config(text="转换为 CSV 成功 ✓")
     
     # ===== 文件操作 =====
@@ -462,7 +601,6 @@ class JSONToolApp:
     
     def save_file(self):
         """保存文件"""
-        # 获取输出内容
         output = self.output_text.get('1.0', tk.END).strip()
         if not output:
             self.show_error("错误", "没有可保存的内容")
@@ -513,11 +651,6 @@ class JSONToolApp:
             self.root.clipboard_clear()
             self.root.clipboard_append(text)
             self.status_label.config(text="已复制到剪贴板 ✓")
-    
-    def paste_and_format(self):
-        """粘贴并尝试格式化"""
-        # 先执行默认粘贴
-        return
     
     def select_all(self):
         """全选"""
