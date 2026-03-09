@@ -93,7 +93,6 @@ class JSONToolApp:
         tree_frame.pack(side=tk.LEFT, fill=tk.Y)
         
         tree_buttons = [
-            ("生成树", self.build_tree),
             ("展开全部", self.tree_expand_all),
             ("折叠全部", self.tree_collapse_all),
         ]
@@ -217,7 +216,7 @@ class JSONToolApp:
         self.tree.pack(fill=tk.BOTH, expand=True)
         
         # 配置列
-        self.tree.column('#0', width=500, minwidth=300)
+        self.tree.column('#0', width=600, minwidth=300)
         self.tree.heading('#0', text='JSON 结构')
         
         # 绑定双击展开/折叠
@@ -313,6 +312,10 @@ class JSONToolApp:
         
         formatted = json.dumps(obj, ensure_ascii=False, indent=2)
         self.set_output(formatted)
+        
+        # 自动构建树形视图
+        self.build_tree(obj)
+        
         self.status_label.config(text="格式化成功 ✓")
     
     def compress_json(self):
@@ -343,6 +346,9 @@ class JSONToolApp:
             self.show_error("JSON 验证失败", error)
             return
         
+        # 自动构建树形视图
+        self.build_tree(obj)
+        
         info = f"✓ JSON 格式正确！\n\n"
         info += f"数据类型: {type(obj).__name__}\n"
         
@@ -372,6 +378,10 @@ class JSONToolApp:
         sorted_obj = self._sort_object(obj)
         sorted_str = json.dumps(sorted_obj, ensure_ascii=False, indent=2)
         self.set_output(sorted_str)
+        
+        # 自动构建树形视图
+        self.build_tree(sorted_obj)
+        
         self.status_label.config(text="排序成功 ✓")
     
     def _sort_object(self, obj):
@@ -385,28 +395,28 @@ class JSONToolApp:
     
     # ===== 树形视图方法 =====
     
-    def build_tree(self):
+    def build_tree(self, obj=None):
         """构建树形视图"""
-        text = self.get_input()
-        if not text:
-            self.show_error("错误", "请输入 JSON 内容")
-            return
-        
-        obj, error = self.parse_json(text)
-        if error:
-            self.show_error("JSON 格式错误", error)
-            return
+        if obj is None:
+            text = self.get_input()
+            if not text:
+                self.show_error("错误", "请输入 JSON 内容")
+                return
+            
+            obj, error = self.parse_json(text)
+            if error:
+                self.show_error("JSON 格式错误", error)
+                return
         
         # 清空现有树
         for item in self.tree.get_children():
             self.tree.delete(item)
         
-        # 构建树
+        # 构建树 - 递归显示所有层级
         self._add_tree_item("", obj, 0)
         
         # 切换到树形视图标签
         self.notebook.select(1)
-        self.status_label.config(text="树形视图构建成功 ✓")
     
     def _add_tree_item(self, parent, obj, depth=0):
         """递归添加树节点"""
@@ -415,21 +425,39 @@ class JSONToolApp:
         if isinstance(obj, dict):
             if depth == 0:
                 # 根对象
-                item_id = self.tree.insert(parent, 'end', text=f"{{ ... }}", open=True)
+                item_id = self.tree.insert(parent, 'end', text=f"{{}}", open=True)
             else:
-                item_id = self.tree.insert(parent, 'end', text=f"{{ {len(obj)} 个键 }}", open=True)
+                item_id = self.tree.insert(parent, 'end', text=f"{{}}", open=True)
             
             for key, value in obj.items():
-                self._add_tree_item(item_id, {key: value}, depth + 1)
-                
+                # 显示键名
+                key_str = f'"{key}"'
+                if isinstance(value, dict):
+                    self.tree.insert(item_id, 'end', text=f'{key_str}: {{}}', open=True)
+                    self._add_tree_item(item_id, value, depth + 1)
+                elif isinstance(value, list):
+                    self.tree.insert(item_id, 'end', text=f'{key_str}: []', open=True)
+                    self._add_tree_item(item_id, value, depth + 1)
+                else:
+                    val_str = self._format_value(value)
+                    self.tree.insert(item_id, 'end', text=f'{key_str}: {val_str}')
+                    
         elif isinstance(obj, list):
             if depth == 0:
-                item_id = self.tree.insert(parent, 'end', text=f"[ {len(obj)} 个元素 ]", open=True)
+                item_id = self.tree.insert(parent, 'end', text=f"[]", open=True)
             else:
-                item_id = self.tree.insert(parent, 'end', text=f"[ {len(obj)} 个元素 ]", open=True)
+                item_id = self.tree.insert(parent, 'end', text=f"[]", open=True)
             
             for i, item in enumerate(obj):
-                self._add_tree_item(item_id, {f"[{i}]": item}, depth + 1)
+                if isinstance(item, dict):
+                    self.tree.insert(item_id, 'end', text=f'[{i}]: {{}}', open=True)
+                    self._add_tree_item(item_id, item, depth + 1)
+                elif isinstance(item, list):
+                    self.tree.insert(item_id, 'end', text=f'[{i}]: []', open=True)
+                    self._add_tree_item(item_id, item, depth + 1)
+                else:
+                    val_str = self._format_value(item)
+                    self.tree.insert(item_id, 'end', text=f'[{i}]: {val_str}')
                 
         else:
             # 叶子节点
@@ -439,8 +467,8 @@ class JSONToolApp:
     def _format_value(self, value):
         """格式化值显示"""
         if isinstance(value, str):
-            if len(value) > 50:
-                return f'"{value[:50]}..."'
+            if len(value) > 100:
+                return f'"{value[:100]}..."'
             return f'"{value}"'
         elif isinstance(value, bool):
             return str(value).lower()
@@ -451,7 +479,6 @@ class JSONToolApp:
     
     def tree_toggle(self, event):
         """双击展开/折叠节点"""
-        # 获取点击位置
         region = self.tree.identify_region(event.x, event.y)
         if region == "tree":
             item_id = self.tree.identify_row(event.y)
@@ -634,6 +661,11 @@ class JSONToolApp:
         self.output_text.config(state=tk.NORMAL)
         self.output_text.delete('1.0', tk.END)
         self.output_text.config(state=tk.DISABLED)
+        
+        # 清空树
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
         self.status_label.config(text="已清空")
     
     def copy_input(self):
