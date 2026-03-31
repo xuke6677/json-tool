@@ -1,0 +1,13 @@
+node_modules/
+dist/
+dist2/
+dist2_backup/
+dist2_new/
+dist3/
+dist4/
+dist4_backup/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.amazonq/

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';">
+  <title>JSON格式化工具</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 顶部工具栏 -->
+    <div class="top-toolbar">
+      <div class="toolbar-left">
+        <div class="panel-tools">
+          <button class="tool-btn primary" id="btn-format" title="格式化">
+            <span class="tool-icon">&#x21C4;</span>格式化
+          </button>
+          <button class="tool-btn primary" id="btn-compress" title="压缩">
+            <span class="tool-icon">&#x2193;</span>压缩
+          </button>
+          <button class="tool-btn primary" id="btn-validate" title="校验">
+            <span class="tool-icon">&#x2713;</span>校验
+          </button>
+          <button class="tool-btn primary" id="btn-copy" title="复制">
+            <span class="tool-icon">&#x2398;</span>复制
+          </button>
+          <button class="tool-btn primary" id="btn-clear" title="清空">
+            <span class="tool-icon">&#x2715;</span>清空
+          </button>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <div class="panel-tools">
+          <button class="tool-btn primary" id="btn-copy-result" title="复制结果">
+            <span class="tool-icon">&#x2398;</span>复制
+          </button>
+          <button class="tool-btn primary" id="btn-collapse-all" title="折叠">
+            <span class="tool-icon">&#x25BC;</span>折叠
+          </button>
+          <button class="tool-btn primary" id="btn-expand-all" title="展开">
+            <span class="tool-icon">&#x25B2;</span>展开
+          </button>
+          <button class="tool-btn primary" id="btn-unescape" title="去转义">
+            <span class="tool-icon">&#x2190;</span>去转义
+          </button>
+          <button class="tool-btn primary" id="btn-escape" title="转义">
+            <span class="tool-icon">&#x2192;</span>转义
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+      <!-- 左侧：JSON输入 -->
+      <div class="panel left-panel">
+        <!-- 左侧搜索栏 -->
+        <div class="search-bar">
+          <input type="text" id="search-keyword-left" class="search-input" placeholder="搜索关键字...">
+          <button class="search-btn" id="btn-search-left" title="搜索">&#x1F50D;</button>
+          <button class="search-btn" id="btn-search-prev-left" title="上一个">&#x25B2;</button>
+          <button class="search-btn" id="btn-search-next-left" title="下一个">&#x25BC;</button>
+          <button class="search-btn" id="btn-search-clear-left" title="清空搜索">&#x2715;</button>
+          <span class="search-count" id="search-count-left">0/0</span>
+        </div>
+        <div class="editor-container">
+          <div class="line-numbers" id="line-numbers-input"></div>
+          <textarea 
+            id="json-input" 
+            class="json-editor" 
+            placeholder="请输入JSON字符串..."
+            spellcheck="false"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- 可拖动分隔条 -->
+      <div class="resizer" id="resizer"></div>
+
+      <!-- 右侧：JSON输出 -->
+      <div class="panel right-panel">
+        <!-- 右侧搜索栏 -->
+        <div class="search-bar">
+          <input type="text" id="search-keyword" class="search-input" placeholder="搜索关键字...">
+          <button class="search-btn" id="btn-search" title="搜索">&#x1F50D;</button>
+          <button class="search-btn" id="btn-search-prev" title="上一个">&#x25B2;</button>
+          <button class="search-btn" id="btn-search-next" title="下一个">&#x25BC;</button>
+          <button class="search-btn" id="btn-search-clear" title="清空搜索">&#x2715;</button>
+          <span class="search-count" id="search-count">0/0</span>
+        </div>
+        <div class="editor-container">
+          <div class="line-numbers" id="line-numbers-output"></div>
+          <div id="json-output" class="json-output"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部状态栏 -->
+    <div class="status-bar">
+      <span class="status-item">
+        <span class="status-label">字符数:</span>
+        <span class="status-value" id="char-count">0</span>
+      </span>
+      <span class="status-item">
+        <span class="status-label">行数:</span>
+        <span class="status-value" id="line-count">0</span>
+      </span>
+      <span class="status-item">
+        <span class="status-label">大小:</span>
+        <span class="status-value" id="size-count">0 B</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- 时间戳tooltip -->
+  <div id="timestamp-tooltip" class="timestamp-tooltip"></div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

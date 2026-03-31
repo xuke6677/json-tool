@@ -1,0 +1,33 @@
+{
+  "name": "json-parser-desktop",
+  "version": "1.0.0",
+  "description": "JSON在线解析工具 - 桌面版",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win dir"
+  },
+  "author": "JSON Parser",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.jsonparser.desktop",
+    "productName": "JSON格式化工具",
+    "directories": {
+      "output": "dist4_backup"
+    },
+    "asar": false,
+    "win": {
+      "target": "dir"
+    },
+    "files": [
+      "main.js",
+      "index.html",
+      "renderer.js",
+      "styles.css"
+    ]
+  }
+}
