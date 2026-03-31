@@ -153,18 +153,17 @@ body {
 
 .line-numbers {
   min-width: 45px;
-  padding: 15px 8px 15px 10px;
+  padding: 0 8px 0 10px;
   background-color: #f8f9fa;
   border-right: 1px solid #e8e8e8;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 22.4px;
   color: #999;
   text-align: right;
   user-select: none;
   overflow: hidden;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+  white-space: pre;
 }
 
 .json-editor {
@@ -187,46 +186,57 @@ body {
 
 .json-output {
   flex: 1;
-  padding: 15px;
+  padding: 0;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 14px;
   line-height: 1.6;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+  overflow-y: auto;
+  overflow-x: auto;
   background-color: #fff;
+  position: relative;
+}
+
+/* 虚拟滚动 */
+.vs-spacer {
+  width: 1px;
+  pointer-events: none;
+}
+.vs-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 0 15px;
+}
+.vs-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 22.4px;
+  line-height: 22.4px;
+  padding: 0 15px;
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* JSON 语法高亮 */
-.json-output .json-key { color: #9c27b0; }
-.json-output .json-string { color: #e91e63; }
-.json-output .json-number { color: #2196f3; }
-.json-output .json-boolean { color: #ff9800; }
-.json-output .json-null { color: #999; }
-.json-output .json-bracket { color: #333; font-weight: bold; }
-.json-output .json-colon,
-.json-output .json-comma { color: #333; }
+.json-key { color: #9c27b0; }
+.json-string { color: #e91e63; }
+.json-number { color: #2196f3; }
+.json-boolean { color: #ff9800; }
+.json-null { color: #999; }
+.json-bracket { color: #333; font-weight: bold; }
+.json-colon, .json-comma { color: #333; }
 
 /* 可编辑的键和值 */
-.json-output .editable-key {
-  cursor: pointer;
-  border-bottom: 1px dashed transparent;
-}
-.json-output .editable-key:hover {
-  border-bottom-color: #9c27b0;
-  background-color: #f3e5f5;
-}
-.json-output .editable-value {
-  cursor: pointer;
-  border-bottom: 1px dashed transparent;
-}
-.json-output .editable-value:hover {
-  border-bottom-color: #4facfe;
-  background-color: #e3f2fd;
-}
+.editable-key { cursor: pointer; border-bottom: 1px dashed transparent; }
+.editable-key:hover { border-bottom-color: #9c27b0; background-color: #f3e5f5; }
+.editable-value { cursor: pointer; border-bottom: 1px dashed transparent; }
+.editable-value:hover { border-bottom-color: #4facfe; background-color: #e3f2fd; }
 
 /* 错误消息 */
-.json-output .error-message {
+.error-message {
   color: #f44336;
   padding: 10px;
   background-color: #ffebee;
@@ -241,31 +251,15 @@ body {
 }
 
 /* 折叠功能 */
-.json-output .fold-wrapper { display: inline; }
-.json-output .fold-trigger { cursor: pointer; color: #4facfe; user-select: none; }
-.json-output .fold-trigger:hover { text-decoration: underline; }
-.json-output .fold-icon { margin-right: 3px; }
-.json-output .fold-preview { color: #999; font-style: italic; }
-.json-output .fold-content {
-  display: block;
-  padding: 0;
-  margin: 0;
-  border-radius: 3px;
-  transition: background-color 0.2s;
-}
+.fold-trigger { cursor: pointer; color: #4facfe; user-select: none; display: inline; }
+.fold-trigger:hover { text-decoration: underline; }
+.fold-icon { margin-right: 3px; display: inline-block; width: 14px; font-size: 14px; line-height: 1; text-align: center; transition: transform 0.15s; }
+.fold-icon.expanded { transform: rotate(90deg); }
+.fold-label { color: #999; font-style: italic; }
+.json-collapsed-dots { color: #999; }
 
-/* 层级悬停背景色 - 从浅灰到深灰 */
-.json-output .fold-content.level-hover.level-0  { background-color: rgba(0,0,0,0.03); }
-.json-output .fold-content.level-hover.level-1  { background-color: rgba(0,0,0,0.06); }
-.json-output .fold-content.level-hover.level-2  { background-color: rgba(0,0,0,0.09); }
-.json-output .fold-content.level-hover.level-3  { background-color: rgba(0,0,0,0.12); }
-.json-output .fold-content.level-hover.level-4  { background-color: rgba(0,0,0,0.15); }
-.json-output .fold-content.level-hover.level-5  { background-color: rgba(0,0,0,0.18); }
-.json-output .fold-content.level-hover.level-6  { background-color: rgba(0,0,0,0.21); }
-.json-output .fold-content.level-hover.level-7  { background-color: rgba(0,0,0,0.24); }
-.json-output .fold-content.level-hover.level-8  { background-color: rgba(0,0,0,0.27); }
-.json-output .fold-content.level-hover.level-9  { background-color: rgba(0,0,0,0.30); }
-.json-output .fold-content.level-hover.level-10 { background-color: rgba(0,0,0,0.33); }
+/* 搜索高亮 */
+mark.sh { background-color: #FFEB3B; border-radius: 2px; padding: 0 1px; }
 
 /* 底部状态栏 */
 .status-bar {
@@ -354,16 +348,7 @@ body {
   text-align: center;
 }
 
-/* 搜索高亮样式 */
-.search-highlight {
-  background-color: #FFEB3B;
-  border-radius: 2px;
-  padding: 0 2px;
-}
-
-.search-highlight.current {
-  background-color: #FF9800;
-}
+/* 搜索高亮样式 - 使用 mark.sh 在虚拟滚动中 */
 
 /* 内联编辑输入框 */
 .inline-edit-input {

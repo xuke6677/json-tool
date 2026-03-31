@@ -5,7 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win dir"
+    "build": "electron-builder --win dir",
+    "build:exe": "electron-builder --win nsis"
   },
   "author": "JSON Parser",
   "license": "MIT",
@@ -21,7 +22,19 @@
     },
     "asar": false,
     "win": {
-      "target": "dir"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": null,
+      "createDesktopShortcut": true,
+      "shortcutName": "JSON格式化工具"
     },
     "files": [
       "main.js",
