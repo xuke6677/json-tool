@@ -1,7 +1,7 @@
 {
-  "name": "development-toolkit",
+  "name": "development_toolkit",
   "version": "1.0.0",
-  "description": "JSON在线解析工具 - 桌面版",
+  "description": "开发工具箱 - 桌面版",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -15,7 +15,7 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "com.jsonparser.desktop",
+    "appId": "com.development-toolkit.desktop",
     "productName": "开发工具箱",
     "directories": {
       "output": "dist"
