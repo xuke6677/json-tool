@@ -1,0 +1,47 @@
+{
+  "name": "development-toolkit",
+  "version": "1.0.0",
+  "description": "JSON在线解析工具 - 桌面版",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win dir",
+    "build:exe": "electron-builder --win nsis"
+  },
+  "author": "JSON Parser",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.jsonparser.desktop",
+    "productName": "开发工具箱",
+    "directories": {
+      "output": "dist"
+    },
+    "asar": false,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": null,
+      "createDesktopShortcut": true,
+      "shortcutName": "开发工具箱"
+    },
+    "files": [
+      "main.js",
+      "index.html",
+      "renderer.js",
+      "styles.css",
+      "tools.js"
+    ]
+  }
+}
